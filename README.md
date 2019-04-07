@@ -19,6 +19,9 @@
 
 ![Alt text](../assets/MAX6675-K-Thermocouple-Module.png "電路佈線圖")
 
+>MLX90614 晶片腳位如下圖
+![Alt text](../assets/mlx90614.png "電路佈線圖")
+
 ### 繼電器
 
 Arduino pro mini | 繼電器
@@ -57,5 +60,5 @@ Arduino pro mini | HC-05
 
 Arduino pro mini | MLX9614
 ---------------- | ------
- D2 | SCL
- D3 | SDA
+ A2(SCL) | SCL
+ A3(SDA) | SDA
