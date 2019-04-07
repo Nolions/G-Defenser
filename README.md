@@ -1,5 +1,9 @@
 # CoffeeBeansLife of Arduino
 
+## Program Flow Chart
+
+![Alt text](../assets/program_flow_chart.png "program flow chart")
+
 ## Use Sensor & Describe
 
  sensor | describe
