@@ -66,7 +66,7 @@ void loop() {
     
     String jsonStr = genTempJSONStr(beansTemp, 0, 0);
     //  透過藍芽回傳溫度
-    bluetoothWrite(jsonStr);
+    bluetoothWrite(beansTemp, "0.0", "0.0");
     
     while(BT.available()) {
       startRecieve = true;
@@ -107,8 +107,16 @@ void loop() {
   delay(waitSec);
 }
 
-void bluetoothWrite(String data) {
-  BT.println(data);
+void bluetoothWrite(double bean, String stove, String env) {  
+  BT.print("{\"b\":");
+  BT.print(bean);
+  BT.print(",\"s\":");
+  BT.print(stove);
+  BT.print(",\"e\":");
+  BT.print(env);
+  BT.print("}");
+  BT.println();
+  delay(20);
 }
 
 /**
