@@ -1,5 +1,6 @@
 #include "max6675.h"
 #include <SoftwareSerial.h>
+#include <Adafruit_MLX90614.h>
 #include <Wire.h>
 
 //difine pin
@@ -24,6 +25,7 @@ const int LED_MODEL_BTConn = 1;
 
 MAX6675 thermo(ThermCLK, ThermCS, ThermDO);
 SoftwareSerial BT(BTRXpin,BTTXpin);
+Adafruit_MLX90614 mlx = Adafruit_MLX90614();
 
 int waitSec = 0;
 double beansTemp = 0;
@@ -39,6 +41,7 @@ void setup() {
   Serial.print("setup..."); 
   Serial.begin(9600);
   BT.begin(9600);
+  mlx.begin(); 
   pinMode(LedPin, OUTPUT);
   ledLight(LED_MODEL_Start);
   alarmBeep(1, 50);
@@ -50,7 +53,9 @@ void loop() {
   recieveData = "";
   waitSec = 1000;
   
-  beansTemp = getThermoTemp();
+  beansTemp = getKTypeTemp();
+  stoveTemp = getObjectTemp();
+  envTemp = getAmbientTemp();
 
   if (isBTConn()) {
     if (isAlertStatus <= 0) {
@@ -64,9 +69,9 @@ void loop() {
     isAlertStatus++;
     ledLight(LED_MODEL_BTConn);
     
-    String jsonStr = genTempJSONStr(beansTemp, 0, 0);
+//    String jsonStr = genTempJSONStr(beansTemp, 0, 0);
     //  透過藍芽回傳溫度
-    bluetoothWrite(beansTemp, "0.0", "0.0");
+    bluetoothWrite(beansTemp, stoveTemp, envTemp);
     
     while(BT.available()) {
       startRecieve = true;
@@ -107,7 +112,7 @@ void loop() {
   delay(waitSec);
 }
 
-void bluetoothWrite(double bean, String stove, String env) {  
+void bluetoothWrite(double bean, double stove, double env) {  
   BT.print("{\"b\":");
   BT.print(bean);
   BT.print(",\"s\":");
@@ -120,10 +125,24 @@ void bluetoothWrite(double bean, String stove, String env) {
 }
 
 /**
- * 取得溫度
+ * 從k-type取得溫度
  */
-double getThermoTemp() {
+double getKTypeTemp() {
   return  thermo.readCelsius();
+}
+
+/**
+ * 從mlx90614取得目標溫度
+ */
+double getObjectTemp() {
+  return mlx.readObjectTempC();
+}
+
+/**
+ * 從mlx90614取得環境溫度
+ */
+double getAmbientTemp(){
+  return mlx.readAmbientTempC();
 }
 
 /**
