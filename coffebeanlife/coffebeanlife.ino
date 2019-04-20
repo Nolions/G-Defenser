@@ -72,6 +72,13 @@ void loop() {
   beansTemp = getKTypeTemp();
   stoveTemp = getObjectTemp();
   envTemp = getAmbientTemp();
+  Serial.print("bean:");
+  Serial.print(beansTemp);
+  Serial.print(",stove:");
+  Serial.print(stoveTemp);
+  Serial.print(",env:");
+  Serial.print(envTemp);
+  Serial.println("");
 
   if (isBTConn()) {
     // 藍芽Client裝置連線
@@ -117,6 +124,7 @@ void loop() {
   if(startRecieve){
     Serial.println(recieveData);
     
+    nowTemp = beansTemp;
     if( recieveData == RUN_MODEL_MANUAL) {
       // 根據模式決定目標溫度判斷依據
       // 手動模式 => 豆溫
@@ -150,7 +158,7 @@ void loop() {
   delay(waitSec);
 }
 
-void bluetoothWrite(double bean, double stove, double env) {  
+void bluetoothWrite(double bean, double stove, double env) {
   BT.print("{\"b\":");
   BT.print(bean);
   BT.print(",\"s\":");
