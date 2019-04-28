@@ -124,17 +124,17 @@ void loop() {
   if(startRecieve){
     Serial.println(recieveData);
     
-    nowTemp = beansTemp;
+    nowTemp = stoveTemp;
     if( recieveData == RUN_MODEL_MANUAL) {
       // 根據模式決定目標溫度判斷依據
       // 手動模式 => 豆溫
       Serial.println("Model:MANUAL" );
-      nowTemp = beansTemp;
+      nowTemp = stoveTemp;
     } else if( recieveData == RUN_MODEL_AUTO) {
       // 根據模式決定目標溫度判斷依據
       // 自動模式 => 爐溫
       Serial.println("Model:AUTO" );
-      nowTemp = stoveTemp;
+      nowTemp = beansTemp
     } else if (recieveData == RELAY_READY_OPEN) {
       Serial.println("RELAY Ready:YES" );
       RelayLEDStatus(true);
