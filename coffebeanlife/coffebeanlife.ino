@@ -57,8 +57,12 @@ void setup() {
   Serial.print("setup..."); 
   Serial.begin(9600);
   BT.begin(9600);
+
+  initPinMode();
+  
+  // 啟動 MLX90614
   mlx.begin(); 
-  pinMode(GREENLedPin, OUTPUT);
+  
   ledLight(LED_MODEL_Start);
   alarmBeep(1, 50);
   delay(500);
@@ -134,7 +138,7 @@ void loop() {
       // 根據模式決定目標溫度判斷依據
       // 自動模式 => 爐溫
       Serial.println("Model:AUTO" );
-      nowTemp = beansTemp
+      nowTemp = beansTemp;
     } else if (recieveData == RELAY_READY_OPEN) {
       Serial.println("RELAY Ready:YES" );
       RelayLEDStatus(true);
@@ -158,6 +162,19 @@ void loop() {
   delay(waitSec);
 }
 
+/**
+ * 指定pin腳模式(OUTPUT/INPUT)
+ */
+void initPinMode() {
+  pinMode(GREENLedPin, OUTPUT);
+  pinMode(REDLedPin, OUTPUT);
+  pinMode(BuzzerPin, OUTPUT);
+  pinMode(RelayPin, OUTPUT);
+}
+
+/**
+ * 透過藍芽傳送溫度
+ */
 void bluetoothWrite(double bean, double stove, double env) {
   BT.print("{\"b\":");
   BT.print(bean);
@@ -174,7 +191,7 @@ void bluetoothWrite(double bean, double stove, double env) {
  * 從k-type取得溫度
  */
 double getKTypeTemp() {
-  return  thermo.readCelsius();
+  return thermo.readCelsius();
 }
 
 /**
@@ -216,20 +233,29 @@ void ledLight(int model) {
   }
 }
 
+/**
+ * 設定Relay的行為
+ */
 void setRelay(double nowTemp) {
-  Serial.print("now:" );
-  Serial.println(nowTemp);
-  Serial.print("target:" );
-  Serial.println(targetTemp);
-  
-  int isStart = HIGH;
+//  Serial.print("now:" );
+//  Serial.println(nowTemp);
+//  Serial.print("target:" );
+//  Serial.println(targetTemp);
+//  Serial.print("relaySatus");
+//  Serial.println(relaySatus);
+
   if (relaySatus && targetTemp > nowTemp) {
+    Serial.println("RelayPin ON");
     digitalWrite(RelayPin, HIGH);
   } else {
+    Serial.println("RelayPin OFF");
     digitalWrite(RelayPin, LOW);
   }
 }
 
+/**
+ * Relay狀態指示燈控制
+ */
 void RelayLEDStatus(bool status) {
   if (status) {
     digitalWrite(REDLedPin, HIGH);
@@ -238,10 +264,16 @@ void RelayLEDStatus(bool status) {
   }
 }
 
+/**
+ * 藍芽裝置啟動指定燈
+ */
 void BLELEDStartAction() {
   digitalWrite(GREENLedPin, HIGH);
 }
 
+/**
+ * 藍芽連線狀態LED控制
+ */
 void BLELEDBTConnAction() {
   digitalWrite(GREENLedPin, LOW);
   delay(100);
