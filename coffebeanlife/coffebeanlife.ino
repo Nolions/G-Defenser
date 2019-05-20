@@ -1,25 +1,22 @@
 #include "max6675.h"
-#include <SoftwareSerial.h>
 #include <Adafruit_MLX90614.h>
 #include <Wire.h>
 
 //difine pin
 // Led Green
-const int REDLedPin = 2;
-const int GREENLedPin = 3;
+const int REDLedPin = 12;
+const int GREENLedPin = 11;
 
 // HC-05
-const byte BTpin = 9;
-const int BTRXpin = 7;
-const int BTTXpin = 8;
+ const byte BTpin = 5;
 
 // Thermocouple MAX675
-const int ThermDO = 6;
-const int ThermCS = 5;
-const int ThermCLK = 4;
+const int ThermMISO = 10;
+const int ThermCS = 9;
+const int ThermSCLK = 8;
 
 // relay(SRD)
-const int RelayPin = 12;
+const int RelayPin = 4;
 
 //  Buzzer
 const int BuzzerPin = 13;
@@ -34,11 +31,6 @@ const String RUN_MODEL_AUTO = "a\r";
 const String RELAY_READY_OPEN = "o\r";
 const String RELAY_READY_CLOSE = "c\r";
 
-
-MAX6675 thermo(ThermCLK, ThermCS, ThermDO);
-SoftwareSerial BT(BTRXpin,BTTXpin);
-Adafruit_MLX90614 mlx = Adafruit_MLX90614();
-
 int waitSec = 0;
 double beansTemp = 0;
 double stoveTemp = 0;
@@ -52,12 +44,15 @@ bool startRecieve = false;
 bool relaySatus = false;
 char val;
 String recieveData = "";
+String model = RUN_MODEL_MANUAL;
+
+MAX6675 thermo(ThermSCLK, ThermCS, ThermMISO);
+Adafruit_MLX90614 mlx = Adafruit_MLX90614();
 
 void setup() {
   Serial.print("setup..."); 
-  Serial.begin(9600);
-  BT.begin(9600);
-
+  Serial1.begin(9600);
+  
   initPinMode();
   
   // 啟動 MLX90614
@@ -71,7 +66,7 @@ void setup() {
 void loop() {
   recieveData = "";
   waitSec = 2000;
-
+  
   // 取得溫度
   beansTemp = getKTypeTemp();
   stoveTemp = getObjectTemp();
@@ -81,11 +76,10 @@ void loop() {
   Serial.print(",stove:");
   Serial.print(stoveTemp);
   Serial.print(",env:");
-  Serial.print(envTemp);
-  Serial.println("");
+  Serial.println(envTemp);
 
   if (isBTConn()) {
-    // 藍芽Client裝置連線
+   // 藍芽Client裝置連線
     if (isAlertStatus <= 0) {
       isAlertStatus = 1;
     }
@@ -99,10 +93,10 @@ void loop() {
     
     //  透過藍芽回傳溫度
     bluetoothWrite(beansTemp, stoveTemp, envTemp);
-    
-    while(BT.available()) {
+
+    while(Serial1.available()) {
       startRecieve = true;
-      val = BT.read();
+      val = Serial1.read();
       if (!isWhitespace(val) && val != '\n') {
         recieveData += val;
       }
@@ -128,17 +122,16 @@ void loop() {
   if(startRecieve){
     Serial.println(recieveData);
     
-    nowTemp = stoveTemp;
     if( recieveData == RUN_MODEL_MANUAL) {
       // 根據模式決定目標溫度判斷依據
-      // 手動模式 => 豆溫
+      // 手動模式 => 爐溫
+      model = RUN_MODEL_MANUAL;
       Serial.println("Model:MANUAL" );
-      nowTemp = stoveTemp;
     } else if( recieveData == RUN_MODEL_AUTO) {
       // 根據模式決定目標溫度判斷依據
-      // 自動模式 => 爐溫
+      // 自動模式 => 豆溫
       Serial.println("Model:AUTO" );
-      nowTemp = beansTemp;
+      model = RUN_MODEL_AUTO;
     } else if (recieveData == RELAY_READY_OPEN) {
       Serial.println("RELAY Ready:YES" );
       RelayLEDStatus(true);
@@ -147,18 +140,23 @@ void loop() {
       Serial.println("RELAY Ready:NO" );
       RelayLEDStatus(false);
       relaySatus = false;
-    } else {
+    } else{
       // 設定目標溫度
       targetTemp = recieveData.toInt();
     }
 
-    // 設定繼電器狀態
-    setRelay(nowTemp);
-    
     startRecieve = false;
     recieveData = "";
   }
 
+  if (model == RUN_MODEL_AUTO) {
+    nowTemp = beansTemp;
+  } else {
+    nowTemp = stoveTemp;
+  }
+  
+  // 設定繼電器狀態
+  setRelay(nowTemp);
   delay(waitSec);
 }
 
@@ -176,14 +174,14 @@ void initPinMode() {
  * 透過藍芽傳送溫度
  */
 void bluetoothWrite(double bean, double stove, double env) {
-  BT.print("{\"b\":");
-  BT.print(bean);
-  BT.print(",\"s\":");
-  BT.print(stove);
-  BT.print(",\"e\":");
-  BT.print(env);
-  BT.print("}");
-  BT.println();
+  Serial1.print("{\"b\":");
+  Serial1.print(bean);
+  Serial1.print(",\"s\":");
+  Serial1.print(stove);
+  Serial1.print(",\"e\":");
+  Serial1.print(env);
+  Serial1.print("}");
+  Serial1.println();
   delay(20);
 }
 
@@ -237,12 +235,12 @@ void ledLight(int model) {
  * 設定Relay的行為
  */
 void setRelay(double nowTemp) {
-//  Serial.print("now:" );
-//  Serial.println(nowTemp);
-//  Serial.print("target:" );
-//  Serial.println(targetTemp);
-//  Serial.print("relaySatus");
-//  Serial.println(relaySatus);
+  Serial.print("now:" );
+  Serial.println(nowTemp);
+  Serial.print("target:" );
+  Serial.println(targetTemp);
+  Serial.print("relaySatus:");
+  Serial.println(relaySatus);
 
   if (relaySatus && targetTemp > nowTemp) {
     Serial.println("RelayPin ON");
