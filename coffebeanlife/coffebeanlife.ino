@@ -1,6 +1,6 @@
-#include "max6675.h"
 #include <Adafruit_MLX90614.h>
-#include <Wire.h>
+#include <ArduinoJson.h>
+#include <max6675.h>
 
 //difine pin
 // Led Green
@@ -32,11 +32,11 @@ const String RELAY_READY_OPEN = "o\r";
 const String RELAY_READY_CLOSE = "c\r";
 
 int waitSec = 0;
-double beansTemp = 0;
-double stoveTemp = 0;
-double envTemp = 0;
-double targetTemp = 0;
-double nowTemp = 0;
+int beansTemp = 0;
+int stoveTemp = 0;
+int envTemp = 0;
+int targetTemp = 0;
+int nowTemp = 0;
 
 int runModel;
 int isAlertStatus = 0;
@@ -174,35 +174,44 @@ void initPinMode() {
  * 透過藍芽傳送溫度
  */
 void bluetoothWrite(double bean, double stove, double env) {
-  Serial1.print("{\"b\":");
-  Serial1.print(bean);
-  Serial1.print(",\"s\":");
-  Serial1.print(stove);
-  Serial1.print(",\"e\":");
-  Serial1.print(env);
-  Serial1.print("}");
-  Serial1.println();
+//  Serial1.print("{\"b\":");
+//  Serial1.print(bean);
+//  Serial1.print(",\"s\":");
+//  Serial1.print(stove);
+//  Serial1.print(",\"e\":");
+//  Serial1.print(env);
+//  Serial1.print("}");
+
+//  Serial1.println();
+
+  StaticJsonDocument<200> doc;
+  doc["b"] = bean;
+  doc["s"] = stove;
+  doc["e"] = env;
+  serializeJson(doc, Serial1);
+  Serial1.println("");
+  
   delay(20);
 }
 
 /**
  * 從k-type取得溫度
  */
-double getKTypeTemp() {
+int getKTypeTemp() {
   return thermo.readCelsius();
 }
 
 /**
  * 從mlx90614取得目標溫度
  */
-double getObjectTemp() {
+int getObjectTemp() {
   return mlx.readObjectTempC();
 }
 
 /**
  * 從mlx90614取得環境溫度
  */
-double getAmbientTemp(){
+int getAmbientTemp(){
   return mlx.readAmbientTempC();
 }
 
