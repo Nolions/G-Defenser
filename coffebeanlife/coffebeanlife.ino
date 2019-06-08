@@ -30,13 +30,17 @@ const String RUN_MODEL_AUTO = "a\r";
 // Relay ready
 const String RELAY_READY_OPEN = "o\r";
 const String RELAY_READY_CLOSE = "c\r";
+// 進/出豆 
+const String ACTION_IN = "in"; // 進豆 
+const String ACTION_OUT = "out"; // 出豆
 
 int waitSec = 0;
-int beansTemp = 0;
-int stoveTemp = 0;
-int envTemp = 0;
-int targetTemp = 0;
-int nowTemp = 0;
+int beansTemp = 0; // 豆溫
+int stoveTemp = 0; // 爐溫
+int envTemp = 0; // 環溫
+int targetTemp = 0; //目標溫度
+int nowTemp = 0; // 現在設定溫度(爐/豆溫)
+int runTime = 0; //烘豆時間(秒)
 
 int runModel;
 int isAlertStatus = 0;
@@ -48,6 +52,8 @@ String model = RUN_MODEL_MANUAL;
 
 MAX6675 thermo(ThermSCLK, ThermCS, ThermMISO);
 Adafruit_MLX90614 mlx = Adafruit_MLX90614();
+
+StaticJsonDocument<200> doc;
 
 void setup() {
   Serial.print("setup..."); 
@@ -71,12 +77,6 @@ void loop() {
   beansTemp = getKTypeTemp();
   stoveTemp = getObjectTemp();
   envTemp = getAmbientTemp();
-  Serial.print("bean:");
-  Serial.print(beansTemp);
-  Serial.print(",stove:");
-  Serial.print(stoveTemp);
-  Serial.print(",env:");
-  Serial.println(envTemp);
 
   if (isBTConn()) {
    // 藍芽Client裝置連線
@@ -101,8 +101,8 @@ void loop() {
         recieveData += val;
       }
       
-      delay(200);
-      waitSec -= 200;
+      delay(20);
+      waitSec -= 20;
     }
   } else {
     // 未有藍芽Client裝置連線
@@ -121,28 +121,34 @@ void loop() {
 
   if(startRecieve){
     Serial.println(recieveData);
-    
-    if( recieveData == RUN_MODEL_MANUAL) {
-      // 根據模式決定目標溫度判斷依據
-      // 手動模式 => 爐溫
-      model = RUN_MODEL_MANUAL;
-      Serial.println("Model:MANUAL" );
-    } else if( recieveData == RUN_MODEL_AUTO) {
-      // 根據模式決定目標溫度判斷依據
-      // 自動模式 => 豆溫
-      Serial.println("Model:AUTO" );
-      model = RUN_MODEL_AUTO;
-    } else if (recieveData == RELAY_READY_OPEN) {
-      Serial.println("RELAY Ready:YES" );
-      RelayLEDStatus(true);
-      relaySatus = true;
-    } else if (recieveData == RELAY_READY_CLOSE) {
-      Serial.println("RELAY Ready:NO" );
-      RelayLEDStatus(false);
-      relaySatus = false;
-    } else{
-      // 設定目標溫度
-      targetTemp = recieveData.toInt();
+
+    DeserializationError error = deserializeJson(doc, recieveData);
+    if (error) {
+      Serial.print(F("deserializeJson() failed: "));
+      Serial.println(error.c_str());
+      return;
+    }
+
+    String action = doc["action"];
+    if(action == "status") {
+      bool isStart = doc["start"];
+      RelayLEDStatus(isStart);
+      relaySatus = isStart;
+      Serial.print("isStart:");
+      Serial.println(isStart);
+    } else if(action == "model") {
+      bool isAuto = doc["auto"];
+      if (isAuto) {
+        model = RUN_MODEL_AUTO;
+      } else {
+        model = RUN_MODEL_MANUAL;
+      }
+      Serial.print("isAuto:");
+      Serial.println(isAuto);
+    } else if (action == "temp") {
+      targetTemp = doc["target"];
+      Serial.print("target temp:");
+      Serial.println(targetTemp);
     }
 
     startRecieve = false;
@@ -244,18 +250,18 @@ void ledLight(int model) {
  * 設定Relay的行為
  */
 void setRelay(double nowTemp) {
-  Serial.print("now:" );
-  Serial.println(nowTemp);
-  Serial.print("target:" );
-  Serial.println(targetTemp);
-  Serial.print("relaySatus:");
-  Serial.println(relaySatus);
+//  Serial.print("now:" );
+//  Serial.println(nowTemp);
+//  Serial.print("target:" );
+//  Serial.println(targetTemp);
+//  Serial.print("relaySatus:");
+//  Serial.println(relaySatus);
 
   if (relaySatus && targetTemp > nowTemp) {
-    Serial.println("RelayPin ON");
+//    Serial.println("RelayPin ON");
     digitalWrite(RelayPin, HIGH);
   } else {
-    Serial.println("RelayPin OFF");
+//    Serial.println("RelayPin OFF");
     digitalWrite(RelayPin, LOW);
   }
 }
