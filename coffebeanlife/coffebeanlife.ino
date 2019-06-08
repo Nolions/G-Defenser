@@ -71,7 +71,7 @@ void setup() {
 
 void loop() {
   recieveData = "";
-  waitSec = 2000;
+  waitSec = 1000;
   
   // 取得溫度
   beansTemp = getKTypeTemp();
@@ -100,9 +100,7 @@ void loop() {
       if (!isWhitespace(val) && val != '\n') {
         recieveData += val;
       }
-      
-      delay(20);
-      waitSec -= 20;
+      waitDelay(20);
     }
   } else {
     // 未有藍芽Client裝置連線
@@ -196,8 +194,8 @@ void bluetoothWrite(double bean, double stove, double env) {
   doc["e"] = env;
   serializeJson(doc, Serial1);
   Serial1.println("");
-  
-  delay(20);
+
+  waitDelay(20);
 }
 
 /**
@@ -228,7 +226,7 @@ void alarmBeep(int count, int mSec) {
   int i = 0;
   for (i; i < count; i++) {
     tone(BuzzerPin, 1000, mSec);
-    delay(600);
+    waitDelay(200);
   }
 }
 
@@ -289,14 +287,11 @@ void BLELEDStartAction() {
  */
 void BLELEDBTConnAction() {
   digitalWrite(GREENLedPin, LOW);
-  delay(100);
-  waitSec -=100;
+  waitDelay(100);
   digitalWrite(GREENLedPin, HIGH);
-  delay(100);
-  waitSec -=100;
+  waitDelay(100);
   digitalWrite(GREENLedPin, LOW);
-  delay(100);
-  waitSec -=100;
+  waitDelay(100);
   digitalWrite(GREENLedPin, HIGH);
 }
 /**
@@ -307,4 +302,20 @@ bool isBTConn() {
     return true;
   }
   return false;
+}
+
+/**
+ * 印出訊息
+ */
+void print(String data, bool isEOF) {
+  if (isEOF) {
+    Serial.println(data);
+  } else {
+    Serial.print(data);
+  }
+}
+
+void waitDelay(int mSec) {
+  delay(mSec);
+  waitSec -= mSec;
 }
