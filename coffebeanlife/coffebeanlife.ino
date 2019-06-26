@@ -84,10 +84,6 @@ void setup() {
 }
 
 void loop() {
-//  Serial.println("model:" + model);
-//  Serial.print("target temp:");
-//  Serial.println(targetTemp);
-  
   recieveData = "";
   waitSec = 1000;
   
