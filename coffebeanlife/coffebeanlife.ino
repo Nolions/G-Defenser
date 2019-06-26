@@ -2,6 +2,11 @@
 #include <ArduinoJson.h>
 #include <max6675.h>
 
+struct tempJob {
+  int sec;
+  int temp;
+};
+
 //difine pin
 // Led Green
 const int REDLedPin = 12;
@@ -25,24 +30,28 @@ const int BuzzerPin = 13;
 const int LED_MODEL_Start = 0;
 const int LED_MODEL_BTConn = 1;
 // Run Model
-const String RUN_MODEL_MANUAL = "m\r";
-const String RUN_MODEL_AUTO = "a\r";
+const String RUN_MODEL_MANUAL = "manual";
+const String RUN_MODEL_AUTO = "auto";
 // Relay ready
-const String RELAY_READY_OPEN = "o\r";
-const String RELAY_READY_CLOSE = "c\r";
+//const String RELAY_READY_OPEN = "o\r";
+//const String RELAY_READY_CLOSE = "c\r";
 // 進/出豆 
-const String ACTION_IN = "in"; // 進豆 
-const String ACTION_OUT = "out"; // 出豆
+//const String ACTION_IN = "in"; // 進豆 
+//const String ACTION_OUT = "out"; // 出豆
 
-int waitSec = 0;
 int beansTemp = 0; // 豆溫
 int stoveTemp = 0; // 爐溫
 int envTemp = 0; // 環溫
-int targetTemp = 0; //目標溫度
-int nowTemp = 0; // 現在設定溫度(爐/豆溫)
-int runTime = 0; //烘豆時間(秒)
 
-int runModel;
+int nowTemp = 0; // 現在設定溫度(爐/豆溫)
+int targetTemp = 0; //目標溫度
+
+int runTime = 0; //烘豆時間(秒)
+int waitSec = 0;
+
+int addSec = 0;
+
+//int runModel;
 int isAlertStatus = 0;
 bool startRecieve = false;
 bool relaySatus = false;
@@ -52,6 +61,11 @@ String model = RUN_MODEL_MANUAL;
 
 MAX6675 thermo(ThermSCLK, ThermCS, ThermMISO);
 Adafruit_MLX90614 mlx = Adafruit_MLX90614();
+
+tempJob jobs[5];
+
+int jobsNum = 0;
+bool inBean = false;
 
 StaticJsonDocument<200> doc;
 
@@ -70,6 +84,10 @@ void setup() {
 }
 
 void loop() {
+//  Serial.println("model:" + model);
+//  Serial.print("target temp:");
+//  Serial.println(targetTemp);
+  
   recieveData = "";
   waitSec = 1000;
   
@@ -92,7 +110,7 @@ void loop() {
     ledLight(LED_MODEL_BTConn);
     
     //  透過藍芽回傳溫度
-    bluetoothWrite(beansTemp, stoveTemp, envTemp);
+    bluetoothWrite(beansTemp, stoveTemp, envTemp, runTime);
 
     while(Serial1.available()) {
       startRecieve = true;
@@ -129,12 +147,26 @@ void loop() {
 
     String action = doc["action"];
     if(action == "status") {
+      jobsNum = 0;
+      runTime = 0;
+      
+      inBean = false;
+
       bool isStart = doc["start"];
       RelayLEDStatus(isStart);
       relaySatus = isStart;
+
+//      if (isStart) {
+//        addSec = 2;
+//      }
+      
       Serial.print("isStart:");
       Serial.println(isStart);
     } else if(action == "model") {
+      jobsNum = 0;
+      inBean = false;
+      runTime = 0;
+      
       bool isAuto = doc["auto"];
       if (isAuto) {
         model = RUN_MODEL_AUTO;
@@ -147,10 +179,34 @@ void loop() {
       targetTemp = doc["target"];
       Serial.print("target temp:");
       Serial.println(targetTemp);
+    } else if (action == "jobs") {
+      int sec = doc["sec"];
+      int temp = doc["temp"];
+      struct tempJob job;
+      job.sec = sec;
+      job.temp = temp;
+      jobs[jobsNum++] = job;
+    } else if (action == "inBean") {
+        runTime = 0;
+        inBean = doc["in"];
+        Serial.print("inBean:");
+        Serial.println(inBean);
     }
 
     startRecieve = false;
     recieveData = "";
+  }
+
+
+  for (int i =0; i<5; i++) {
+      struct tempJob job = jobs[i];
+
+      if (model == RUN_MODEL_AUTO && inBean) {
+          if (runTime+2 == job.sec || runTime-2 == job.sec || runTime+1 == job.sec || runTime-1 == job.sec) {
+            targetTemp = job.temp;
+            Serial.println(targetTemp);
+          }
+      }
   }
 
   if (model == RUN_MODEL_AUTO) {
@@ -161,6 +217,7 @@ void loop() {
   
   // 設定繼電器狀態
   setRelay(nowTemp);
+  runTime += addSec;
   delay(waitSec);
 }
 
@@ -177,21 +234,12 @@ void initPinMode() {
 /**
  * 透過藍芽傳送溫度
  */
-void bluetoothWrite(double bean, double stove, double env) {
-//  Serial1.print("{\"b\":");
-//  Serial1.print(bean);
-//  Serial1.print(",\"s\":");
-//  Serial1.print(stove);
-//  Serial1.print(",\"e\":");
-//  Serial1.print(env);
-//  Serial1.print("}");
-
-//  Serial1.println();
-
+void bluetoothWrite(double bean, double stove, double env, int sec) {
   StaticJsonDocument<200> doc;
   doc["b"] = bean;
   doc["s"] = stove;
   doc["e"] = env;
+  doc["t"] = sec;
   serializeJson(doc, Serial1);
   Serial1.println("");
 
