@@ -2,7 +2,7 @@
 
 ## 流程圖
 
-![Alt text](../assets/program_flow_chart.png "program flow chart")
+![Alt text](./assets/program_flow_chart.png "program flow chart")
 
 ## 使用相關硬體與元件
 
@@ -25,7 +25,7 @@
 
 **電路架構圖**
 
-![Alt text](./assets/circuit_diagram_fframework.png "電路架構圖")
+![Alt text](./assets/circuit_diagram_架構圖.png "電路架構圖")
 
 >MAX6675 晶片腳位如下圖
 
