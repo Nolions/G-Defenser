@@ -11,8 +11,8 @@ struct tempJob {
 //  Buzzer
 const int BUZZEER_PIN = 13;
 // Led
-const int RELAY_STATUS_PIN = 12; // Red LED
-const int SYSTEM_STATUS_PIN = 11; // Green LED
+const int RELAY_STATUS_PIN = 12; // Green LED
+const int SYSTEM_STATUS_PIN = 11; // Red LED
 // Thermocouple MAX675
 const int THERM_SO_PIN = 10;
 const int THERM_CS_PIN = 9;
@@ -53,6 +53,7 @@ bool inBean = false;
 
 void setup() {
   Serial.begin(9600);
+  Serial1.begin(9600);
   Serial.print("setup..."); 
   
   digitalWrite(SYSTEM_STATUS_PIN, HIGH);
@@ -63,14 +64,14 @@ void setup() {
   // 啟動 MLX90614
   mlx.begin(); 
   
-  Serial1.begin(9600);
+  
   delay(500);
 }
 
 void loop() {
   String recieveData = "";
-  waitSec = 1000;
-  
+  waitSec = 2000;
+
   // 取得溫度
   beansTemp = getKTypeTemp();
   stoveTemp = getObjectTemp();
@@ -104,8 +105,9 @@ void loop() {
     // 藍芽連線中斷時強制關閉relay
     relaySatus = false;
   }
-  
-  if(startRecieve && recieveData != ""){
+
+  if(startRecieve){
+    Serial.println("recieveData:" + recieveData);
     StaticJsonDocument<200> doc;
     DeserializationError error = deserializeJson(doc, recieveData);
     if (error) {
@@ -125,7 +127,12 @@ void loop() {
 
       bool isStart = doc["start"];
       relaySatus = isStart;
-      
+
+      if (relaySatus) {
+        digitalWrite(RELAY_STATUS_PIN, HIGH);
+      } else {
+        digitalWrite(RELAY_STATUS_PIN, LOW);
+      }
       Serial.print("isStart:" + isStart);
     } else if(action == "model") {
       inBean = false;
@@ -185,8 +192,8 @@ void bluetoothWrite(double bean, double stove, double env, int sec) {
 
 String read() {
   String data = "";
+  
   while(Serial1.available()) {
-    Serial.println("aaaaa");
     startRecieve = true;
     char val = Serial1.read();
     if (!isWhitespace(val) && val != '\n') {
@@ -235,10 +242,8 @@ void alarmBeep(int count, int mSec) {
 void setRelay(double nowTemp) {
   if (relaySatus && targetTemp > nowTemp) {
     digitalWrite(RelayPin, HIGH);
-    digitalWrite(RELAY_STATUS_PIN, HIGH);
   } else {
     digitalWrite(RelayPin, LOW);
-    digitalWrite(RELAY_STATUS_PIN, LOW);
   }
 }
 
