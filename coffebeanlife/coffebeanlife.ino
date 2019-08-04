@@ -7,6 +7,8 @@ struct tempJob {
   int temp;
 };
 
+const String VERSION = "1.0.0";
+
 //difine const of pin
 //  Buzzer
 const int BUZZEER_PIN = 13;
@@ -54,7 +56,9 @@ bool inBean = false;
 void setup() {
   Serial.begin(9600);
   Serial1.begin(9600);
-  Serial.print("setup..."); 
+  while (!Serial);
+  Serial.println("version:" + VERSION);
+  Serial.println("==============================setup=============================="); 
   
   digitalWrite(SYSTEM_STATUS_PIN, HIGH);
   alarmBeep(1, 50);
@@ -64,11 +68,12 @@ void setup() {
   // 啟動 MLX90614
   mlx.begin(); 
   
-  
   delay(500);
 }
 
 void loop() {
+  commend(serialRead());
+
   String recieveData = "";
   waitSec = 2000;
 
@@ -141,10 +146,11 @@ void loop() {
       bool isAuto = doc["auto"];
       if (isAuto) {
         model = RUN_MODEL_AUTO;
+        Serial.print("isAuto:true");
       } else {
         model = RUN_MODEL_MANUAL;
+        Serial.print("isAuto:false");
       }
-      Serial.print("isAuto:" + isAuto);
     } else if (action == "temp") {
       targetTemp = doc["target"];
       Serial.print("target temp:" + targetTemp);
@@ -188,6 +194,25 @@ void bluetoothWrite(double bean, double stove, double env, int sec) {
   Serial1.println("");
 
   waitDelay(20);
+}
+
+String serialRead() {
+  String cmd = "";
+  while(Serial.available() > 0) {
+    char val = Serial.read();
+    if (!isWhitespace(val) &&  val != '-' && val != '\n' && val != '\r') {
+      cmd += val;
+    }
+    waitDelay(20);
+  }
+ 
+  return cmd; 
+}
+
+void commend(String cmd) {
+  if (cmd == "v" || cmd == "version") {
+    Serial.println("version:" + VERSION);
+  }
 }
 
 String read() {
@@ -266,8 +291,10 @@ void setTarget(int model) {
   // 設定溫度目標基準: auto ==> 豆溫, 
   if (model == RUN_MODEL_AUTO) {
     nowTemp = beansTemp;
+    Serial.println("isAuto:true");
   } else if (model == RUN_MODEL_MANUAL) {
     nowTemp = stoveTemp;
+    Serial.println("isAuto:false");
   }
 } 
 
