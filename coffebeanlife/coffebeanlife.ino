@@ -56,7 +56,7 @@ bool inBean = false;
 void setup() {
   Serial.begin(9600);
   Serial1.begin(9600);
-  while (!Serial);
+//  while (!Serial);
   Serial.println("version:" + VERSION);
   Serial.println("==============================setup=============================="); 
   
