@@ -6,7 +6,7 @@ struct tempJob {
   int sec;
   int temp;
 };
-
+// 系統版本
 const String VERSION = "1.0.0";
 
 //difine const of pin
